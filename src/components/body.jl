@@ -16,6 +16,11 @@ mutable struct Body{T} <: AbstractBody{T}
     s1::SVector{6,T}
     f::SVector{6,T}
 
+    # sl0::Float64
+    # sl1::Float64
+    # ga0::Float64
+    # ga1::Float64
+
     function Body(m::T,J::AbstractArray{T,2}) where T
         x = [@SVector zeros(T,3)]
         q = [Quaternion{T}()]
@@ -103,11 +108,11 @@ end
     Quaternion(sqrt(4/dt^2 - dot(ωnew,ωnew)),ωnew)
 end
 
-@inline function dynamics(body::Body{T}, robot) where T
-    No = robot.No
-    dt = robot.dt
+@inline function dynamics(body::Body{T}, mechanism) where T
+    No = mechanism.No
+    dt = mechanism.dt
 
-    ezg = SVector{3,T}(0,0,-robot.g)
+    ezg = SVector{3,T}(0,0,-mechanism.g)
     dynT = body.m*((getvnew(body) - getv1(body,dt))/dt + ezg) - body.F[No]
 
     J = body.J
@@ -119,8 +124,12 @@ end
 
     body.f = [dynT;dynR]
 
-    for cid in connections(robot.graph,body.id)
-        GtλTof!(body,getconstraint(robot,cid),robot)
+    for cid in connections(mechanism.graph,body.id)
+        GtλTof!(body,geteqconstraint(mechanism,cid),mechanism)
+    end
+
+    for cid in ineqchildren(mechanism.graph,body.id)
+        NtγTof!(body,getineqconstraint(mechanism,cid),mechanism)
     end
 
     return body.f
