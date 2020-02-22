@@ -3,22 +3,18 @@ struct UnitDict{R,T}
     values::Vector{T}
 
     UnitDict(unitrange,values::Vector{T}) where T = new{typeof(unitrange),T}(unitrange,values)
-    UnitDict(values::Vector) = UnitDict(Base.OneTo(length(values)),values)
+    UnitDict(values) = UnitDict(Base.OneTo(length(values)),values)
     function UnitDict(dict::Dict{T1,T2}) where {T1,T2}
-        if isempty(dict)
-            UnitDict(zero(T1):zero(T1),T2[])
-        else
-            a = minimum(keys(dict))
-            b = maximum(keys(dict))
+        a = minimum(keys(dict))
+        b = maximum(keys(dict))
 
-            a==1 ? (range = Base.OneTo(b)) : (range = a:b)
-            values = T2[]
-            for k in range
-                push!(values,dict[k])
-            end
-
-            UnitDict(range,values)
+        a==1 ? (range = Base.OneTo(b)) : (range = a:b)
+        values = Vector{T2}(undef,0)
+        for k in range
+            push!(values,dict[k])
         end
+
+        UnitDict(range,values)
     end
 end
 

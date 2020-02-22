@@ -7,7 +7,6 @@ struct Graph{N}
 
     directchildren::Vector{Vector{Int64}}
     loopchildren::Vector{Vector{Int64}}
-    ineqchildren::Vector{Vector{Int64}}
     successors::Vector{Vector{Int64}} # contains direct and loop children
     predecessors::Vector{Vector{Int64}}
     connections::Vector{Vector{Int64}}
@@ -18,11 +17,9 @@ struct Graph{N}
     dict::UnitDict{Base.OneTo{Int64},Int64}
     rdict::UnitDict{Base.OneTo{Int64},Int64}
 
-    function Graph(origin::Origin,bodies::Vector{<:Body},
-        eqconstraints::Vector{<:EqualityConstraint},ineqconstraints::Vector{<:InequalityConstraint})
-
+    function Graph(origin::Origin,bodies::Vector{<:Body},constraints::Vector{<:Constraint})
         oid = origin.id
-        adjacency, dict = adjacencyMatrix(eqconstraints,bodies)
+        adjacency, dict = adjacencyMatrix(constraints,bodies)
         dfsgraph, dfslist, loops = dfs(adjacency,dict,oid)
         pat = pattern(dfsgraph,dict,loops)
         fil, originals = fillins(dfsgraph,pat,dict,loops)
@@ -40,7 +37,7 @@ struct Graph{N}
         pop!(dict,oid)
         rdict = Dict(ind => id for (id, ind) in dict)
 
-        for constraint in eqconstraints
+        for constraint in constraints
             constraint.pid == oid && (constraint.pid = nothing)
         end
 
@@ -54,7 +51,6 @@ struct Graph{N}
 
         dirs = directchildren(dfslist,originals,dict)
         loos = loopchildren(dfslist,fil,dict)
-        ineqs = ineqchildren(dfslist,bodies,ineqconstraints,dict)
         sucs = successors(dfslist,pat,dict)
         preds = predecessors(dfslist,pat,dict)
         cons = connections(dfslist,adjacency,dict)
@@ -62,16 +58,16 @@ struct Graph{N}
         dict = UnitDict(dict)
         rdict = UnitDict(rdict)
 
-        new{N}(dirs,loos,ineqs,sucs,preds,cons,dfslist,reverse(dfslist),dict,rdict)
+        new{N}(dirs,loos,sucs,preds,cons,dfslist,reverse(dfslist),dict,rdict)
 end
 end
 
-function adjacencyMatrix(eqconstraints::Vector{<:EqualityConstraint},bodies::Vector{<:Body})
+function adjacencyMatrix(constraints::Vector{<:Constraint},bodies::Vector{<:Body})
     A = zeros(Bool,0,0)
     dict = Dict{Int64,Int64}()
     n = 0
 
-    for constraint in eqconstraints
+    for constraint in constraints
         cid = constraint.id
         A = [A zeros(Bool,n,1); zeros(Bool,1,n) zero(Bool)]
         dict[cid] = n+=1
@@ -207,18 +203,6 @@ function loopchildren(dfslist,fillins,dict::Dict)
     return loos
 end
 
-function ineqchildren(dfslist,bodies,ineqconstraints,dict::Dict)
-    N = length(dfslist)
-    ineqs = [Vector{Int64}(undef,0) for i=1:N]
-    for body in bodies
-        for c in ineqconstraints
-            c.pid == body.id && push!(ineqs[dict[body.id]],c.id)
-        end
-    end
-
-    return ineqs
-end
-
 # this is done in reverse order (but this is not really important for predecessors)
 function predecessors(dfslist,pattern,dict::Dict)
     N = length(dfslist)
@@ -247,7 +231,6 @@ end
 
 @inline directchildren(graph,id::Int64) = graph.directchildren[graph.dict[id]]
 @inline loopchildren(graph,id::Int64) = graph.loopchildren[graph.dict[id]]
-@inline ineqchildren(graph,id::Int64) = graph.ineqchildren[graph.dict[id]]
 @inline successors(graph,id::Int64) = graph.successors[graph.dict[id]]
 @inline predecessors(graph,id::Int64) = graph.predecessors[graph.dict[id]]
 @inline connections(graph,id::Int64) = graph.connections[graph.dict[id]]
