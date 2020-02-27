@@ -25,7 +25,6 @@ export Box,
     Origin,
     Body,
     EqualityConstraint,
-    InequalityConstraint,
     Mechanism,
 
     OriginConnection,
@@ -37,8 +36,6 @@ export Box,
     Fixed,
     FixedOrientation,
     CylindricalFree,
-
-    Impact,
 
     setInit!,
     simulate!,
@@ -53,10 +50,8 @@ include(joinpath("util", "quaternion.jl"))
 include(joinpath("util", "shapes.jl"))
 include(joinpath("components", "component.jl"))
 include(joinpath("joints", "joint.jl"))
-include(joinpath("bounds", "bound.jl"))
 include(joinpath("components", "body.jl"))
 include(joinpath("components", "constraint.jl"))
-include(joinpath("bounds", "impact.jl"))
 
 include(joinpath("joints", "translationalrotational6.jl"))
 include(joinpath("joints", "translational0.jl"))
@@ -68,7 +63,6 @@ include(joinpath("joints", "rotational2.jl"))
 include(joinpath("joints", "prototypes.jl"))
 
 include(joinpath("components", "equalityconstraint.jl"))
-include(joinpath("components", "inequalityconstraint.jl"))
 
 include(joinpath("util", "graph.jl"))
 include(joinpath("util", "storage.jl"))

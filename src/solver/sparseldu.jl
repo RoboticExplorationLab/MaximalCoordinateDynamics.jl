@@ -27,25 +27,13 @@ mutable struct OffDiagonalEntry{T,N1,N2,N1N2} <: Entry{T}
     end
 end
 
-mutable struct InequalityEntry{T,N} <: Entry{T}
-    Δs::SVector{N,T}
-    Δγ::SVector{N,T}
-
-    function InequalityEntry{T,N}() where {T,N}
-        Δs = @SVector zeros(T, N)
-        Δγ = @SVector zeros(T, N)
-
-        new{T,N}(Δs, Δγ)
-    end
-end
 
 struct SparseLDU{T}
     diagonals::UnitDict{Base.OneTo{Int64},DiagonalEntry{T}}
     offdiagonals::Dict{Tuple{Int64,Int64},OffDiagonalEntry{T}}
-    inequalities::UnitDict{UnitRange{Int64},InequalityEntry{T}}
 
     function SparseLDU(graph::Graph{N},bodies::Vector{Body{T}},eqcs::Vector{<:EqualityConstraint{T}},
-        ineqcs::Vector{<:InequalityConstraint{T}},bdict::Dict,eqdict::Dict,ineqdict::Dict) where {T,N}
+        bdict::Dict,eqdict::Dict) where {T,N}
 
         diagonals = DiagonalEntry{T}[]
         for body in bodies
@@ -61,7 +49,7 @@ struct SparseLDU{T}
             haskey(bdict, id) ? node = bodies[bdict[id]] : node = eqcs[eqdict[id]]
             N1 = length(node)
 
-            for cid in successors(graph, id)
+            for cid in directchildren(graph, id)
                 haskey(bdict, cid) ? cnode = bodies[bdict[cid]] : cnode = eqcs[eqdict[cid]]
                 N2 = length(cnode)
 
@@ -69,20 +57,9 @@ struct SparseLDU{T}
             end
         end
 
-        inequalities = InequalityEntry{T}[]
-        for ineq in ineqcs
-            push!(inequalities, InequalityEntry{T,length(ineq)}())
-        end
-        if !isempty(inequalities)
-            inequalities = UnitDict((ineqcs[1].id):(ineqcs[length(inequalities)].id), inequalities)
-        else
-            inequalities = UnitDict(0:0, inequalities)
-        end
-
-        new{T}(diagonals, offdiagonals, inequalities)
+        new{T}(diagonals, offdiagonals)
     end
 end
 
 @inline getentry(ldu::SparseLDU, id::Int64) = ldu.diagonals[id]
 @inline getentry(ldu::SparseLDU, ids::Tuple{Int64,Int64}) = ldu.offdiagonals[ids]
-@inline getineqentry(ldu::SparseLDU, id::Int64) = ldu.inequalities[id]
