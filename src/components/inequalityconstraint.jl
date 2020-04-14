@@ -9,7 +9,10 @@ mutable struct InequalityConstraint{T,N,Cs} <: AbstractConstraint{T,N}
     s1::SVector{N,T}
     γ0::SVector{N,T}
     γ1::SVector{N,T}
-    
+    b0::Vector{SVector{2,T}}
+    b1::Vector{SVector{2,T}}
+    y0::Vector{SVector{2,T}}
+    y1::Vector{SVector{2,T}}
 
     function InequalityConstraint(data...)
         bounddata = Tuple{Bound,Int64}[]
@@ -41,8 +44,12 @@ mutable struct InequalityConstraint{T,N,Cs} <: AbstractConstraint{T,N}
         s1 = ones(T, N)
         γ0 = ones(T, N)
         γ1 = ones(T, N)
+        b0 = Vector{SVector{2,T}}([zeros(2) for i=1:N])
+        b1 = Vector{SVector{2,T}}([zeros(2) for i=1:N])
+        y0 = Vector{SVector{2,T}}([zeros(2) for i=1:N])
+        y1 = Vector{SVector{2,T}}([zeros(2) for i=1:N])
 
-        new{T,N,typeof(constraints)}(getGlobalID(), constraints, pid, s0, s1, γ0, γ1)
+        new{T,N,typeof(constraints)}(getGlobalID(), constraints, pid, s0, s1, γ0, γ1, b0, b1, y0, y1)
     end
 end
 
@@ -69,7 +76,7 @@ end
 end
 
 function gs(ineqc::InequalityConstraint{T,1}, mechanism) where {T}
-    g(ineqc.constraints[1], getbody(mechanism, ineqc.pid), mechanism.Δt, mechanism.No) - ineqc.s1[1]
+    [g(ineqc.constraints[1], getbody(mechanism, ineqc.pid), mechanism.Δt, mechanism.No) - ineqc.s1[1]; ineqc.b1[1]-ineqc.constraints[1].b0]
 end
 
 @generated function gs(ineqc::InequalityConstraint{T,N}, mechanism) where {T,N}
@@ -89,15 +96,15 @@ end
 function schurf(ineqc::InequalityConstraint{T,N}, body, mechanism) where {T,N}
     val = @SVector zeros(T, 6)
     for i = 1:N
-        val += schurf(ineqc, ineqc.constraints[i], i, body, mechanism.μ, mechanism.Δt, mechanism.No)
+        val += schurf(ineqc, ineqc.constraints[i], i, body, mechanism.μ, mechanism.ρ, mechanism.Δt, mechanism.No)
     end
     return val
 end
 
-function schurD(ineqc::InequalityConstraint{T,N}, body, Δt) where {T,N}
+function schurD(ineqc::InequalityConstraint{T,N}, body, mechanism) where {T,N}
     val = @SMatrix zeros(T, 6, 6)
     for i = 1:N
-        val += schurD(ineqc, ineqc.constraints[i], i, body, Δt)
+        val += schurD(ineqc, ineqc.constraints[i], i, body, mechanism.ρ, mechanism.Δt)
     end
     return val
 end
@@ -117,6 +124,15 @@ function setFrictionForce!(ineqc::InequalityConstraint{T,N}, mechanism) where {T
         constraint = ineqc.constraints[i]
         if typeof(constraint) <: Friction
             setFrictionForce!(mechanism, ineqc, constraint, i, getbody(mechanism, ineqc.pid))
+        end
+    end
+end
+
+function calcFrictionForce!(ineqc::InequalityConstraint{T,N}, mechanism) where {T,N}
+    for i = 1:N
+        constraint = ineqc.constraints[i]
+        if typeof(constraint) <: Friction
+            calcFrictionForce!(mechanism, ineqc, constraint, i, getbody(mechanism, ineqc.pid))
         end
     end
 end

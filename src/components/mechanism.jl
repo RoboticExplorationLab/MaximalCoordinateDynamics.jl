@@ -21,6 +21,7 @@ mutable struct Mechanism{T,N,Ni}
 
     α::T
     μ::T
+    ρ::T
 
     shapes::Vector{<:Shape{T}}
 
@@ -113,8 +114,9 @@ mutable struct Mechanism{T,N,Ni}
 
         α = 1
         μ = 1
+        ρ = 1
 
-        new{T,N,Ni}(tend, Base.OneTo(steps), Δt, g, No, origin, bodies, eqcs, ineqcs, normf, normΔs, graph, ldu, storage, α, μ, shapes)
+        new{T,N,Ni}(tend, Base.OneTo(steps), Δt, g, No, origin, bodies, eqcs, ineqcs, normf, normΔs, graph, ldu, storage, α, μ, ρ, shapes)
     end
 
     function Mechanism(origin::Origin{T},bodies::Vector{Body{T}},eqcs::Vector{<:EqualityConstraint{T}};

@@ -30,10 +30,12 @@ end
 mutable struct InequalityEntry{T,N} <: Entry{T}
     Δs::SVector{N,T}
     Δγ::SVector{N,T}
+    Δb::SVector{N,SVector{2,T}}
 
     function InequalityEntry{T,N}() where {T,N}
         Δs = @SVector zeros(T, N)
         Δγ = @SVector zeros(T, N)
+        Δb = SVector{N,SVector{2,T}}([zeros(2) for i=1:N])
 
         new{T,N}(Δs, Δγ)
     end

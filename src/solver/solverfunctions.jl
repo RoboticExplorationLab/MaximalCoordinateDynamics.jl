@@ -5,7 +5,7 @@
 end
 
 @inline function extendDandΔs!(diagonal::DiagonalEntry, body::Body, ineqc::InequalityConstraint, mechanism::Mechanism)
-    diagonal.D += schurD(ineqc, body, mechanism.Δt) # + SMatrix{6,6,Float64,36}(1e-5*I)
+    diagonal.D += schurD(ineqc, body, mechanism) # + SMatrix{6,6,Float64,36}(1e-5*I)
     diagonal.Δs += schurf(ineqc, body, mechanism)
     return
 end
@@ -163,6 +163,7 @@ end
 function eliminatedSol!(ineqentry::InequalityEntry, diagonal::DiagonalEntry, body::Body, ineqc::InequalityConstraint, mechanism::Mechanism)
     Δt = mechanism.Δt
     μ = mechanism.μ
+    ρ = mechanism.ρ
     No = 2
 
     φ = g(ineqc, mechanism)
@@ -170,12 +171,18 @@ function eliminatedSol!(ineqentry::InequalityEntry, diagonal::DiagonalEntry, bod
     Nx = ∂g∂pos(ineqc, body, mechanism)
     Nv = ∂g∂vel(ineqc, body, mechanism)
 
+    D = ineqc.constraints[1].D
+
     γ1 = ineqc.γ1
     s1 = ineqc.s1
+    b = ineqc.b1[1]
+    y = ineqc.y1[1]
+    b0 = ineqc.constraints[1].b0
 
     Δv = diagonal.Δs
     ineqentry.Δγ = γ1 ./ s1 .* φ - μ ./ s1 - γ1 ./ s1 .* (Nv * Δv)
     ineqentry.Δs = s1 .- μ ./ γ1 - s1 ./ γ1 .* ineqentry.Δγ
+    ineqentry.Δb = 1/ρ*(D*Δt*Δv - D*([body.x[2];0;0;0] + Δt*body.s1) - y + ρ*(b-b0))
 
     return
 end

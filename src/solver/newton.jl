@@ -44,12 +44,16 @@ function newton!(mechanism::Mechanism{T,Nl}; ε = 1e-10, σ = 0.1, μ = 1.0, new
 
     meritf0 = meritf(mechanism)
     for n = Base.OneTo(newtonIter)
-        setFrictionForce!(mechanism)
+        calcFrictionForce!(mechanism)
         setentries!(mechanism)
         factor!(graph, ldu)
         solve!(mechanism) # x̂1 for each body and constraint
 
         meritf1 = lineSearch!(mechanism, meritf0;iter = lineIter, warning = warning)
+
+        for ineqc in ineqcs
+            ineqc.y1[1] = ineqc.y1[1] - mechanism.ρ*(ineqc.b1[1]-ineqc.constraints[1].b0)
+        end
 
         foreach(s1tos0!, bodies)
         foreach(s1tos0!, eqcs)
@@ -145,5 +149,6 @@ end
 @inline function lineStep!(ineqc::InequalityConstraint, entry, scale, mechanism)
     ineqc.s1 = ineqc.s0 - 1 / (2^scale) * mechanism.α * entry.Δs
     ineqc.γ1 = ineqc.γ0 - 1 / (2^scale) * mechanism.α * entry.Δγ
+    ineqc.b1[1] = ineqc.b0[1] - 1 / (2^scale) * mechanism.α * entry.Δb[1]
     return
 end

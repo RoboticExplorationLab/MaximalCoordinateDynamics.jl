@@ -32,10 +32,10 @@ shapes = [box1]
 
 mech = Mechanism(origin, links, eqcs, ineqcs, shapes = shapes)
 
+setPosition!(mech,link1,x=[0;0;2.])
+setVelocity!(mech,link1,v = [0;3.;0])
+# setForce!(mech,link1,F=[0;2.5;0.])
 
-setVelocity!(mech,link1,v = [0;0.001;0])
-setForce!(mech,link1,F=[0;2.5;0.])
 
-
-simulate!(mech,save = true)
+simulate!(mech,save = true, debug=true)
 visualize!(mech)

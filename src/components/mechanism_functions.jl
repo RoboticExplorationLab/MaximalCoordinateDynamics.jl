@@ -58,7 +58,7 @@ end
 end
 
 @inline function NtγTof!(body::Body, ineqc::InequalityConstraint, mechanism)
-    body.f -= ∂g∂pos(ineqc, body, mechanism)' * ineqc.γ1
+    body.f -= ∂g∂pos(ineqc, body, mechanism)' * ineqc.γ1 + ineqc.constraints[1].D'*ineqc.b1[1]
     return
 end
 
@@ -149,6 +149,10 @@ end
 
 function setFrictionForce!(mechanism)
     foreach(setFrictionForce!, mechanism.ineqconstraints, mechanism)
+end
+
+function calcFrictionForce!(mechanism)
+    foreach(calcFrictionForce!, mechanism.ineqconstraints, mechanism)
 end
 
 
