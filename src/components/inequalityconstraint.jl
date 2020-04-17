@@ -77,6 +77,7 @@ end
 
 function gs(ineqc::InequalityConstraint{T,1}, mechanism) where {T}
     [g(ineqc.constraints[1], getbody(mechanism, ineqc.pid), mechanism.Δt, mechanism.No) - ineqc.s1[1]; ineqc.b1[1]-ineqc.constraints[1].b0]
+    # g(ineqc.constraints[1], getbody(mechanism, ineqc.pid), mechanism.Δt, mechanism.No) - ineqc.s1[1]
 end
 
 @generated function gs(ineqc::InequalityConstraint{T,N}, mechanism) where {T,N}

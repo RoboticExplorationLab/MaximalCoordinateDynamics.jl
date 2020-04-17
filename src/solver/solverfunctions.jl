@@ -140,12 +140,16 @@ end
 @inline function s0tos1!(ineqc::InequalityConstraint)
     ineqc.s1 = ineqc.s0
     ineqc.γ1 = ineqc.γ0
+    ineqc.b1 = ineqc.b0
+    ineqc.y1 = ineqc.y0
     return
 end
 
 @inline function s1tos0!(ineqc::InequalityConstraint)
     ineqc.s0 = ineqc.s1
     ineqc.γ0 = ineqc.γ1
+    ineqc.b0 = ineqc.b1
+    ineqc.y0 = ineqc.y1
     return
 end
 

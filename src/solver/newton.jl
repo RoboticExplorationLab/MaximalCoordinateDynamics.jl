@@ -150,5 +150,6 @@ end
     ineqc.s1 = ineqc.s0 - 1 / (2^scale) * mechanism.α * entry.Δs
     ineqc.γ1 = ineqc.γ0 - 1 / (2^scale) * mechanism.α * entry.Δγ
     ineqc.b1[1] = ineqc.b0[1] - 1 / (2^scale) * mechanism.α * entry.Δb[1]
+    # ineqc.b1[1] = ineqc.b0[1] - 1 / (2^scale) * entry.Δb[1]
     return
 end
