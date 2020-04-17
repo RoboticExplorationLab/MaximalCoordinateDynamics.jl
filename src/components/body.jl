@@ -14,6 +14,9 @@ mutable struct Body{T} <: AbstractBody{T}
     s1::SVector{6,T}
     f::SVector{6,T}
 
+    b0::SVector{2,T}
+    b1::SVector{2,T}
+
 
     function Body(m::T, J::AbstractArray{T,2}) where T
         x = [zeros(T, 3)]
@@ -26,7 +29,10 @@ mutable struct Body{T} <: AbstractBody{T}
         s1 = zeros(T, 6)
         f = zeros(T, 6)
 
-        new{T}(getGlobalID(), m, J, x, q, F, τ, s0, s1, f)
+        b0 = zeros(T, 2)
+        b1 = zeros(T, 2)
+
+        new{T}(getGlobalID(), m, J, x, q, F, τ, s0, s1, f, b0, b1)
     end
 
     function Body(shape::Shape)
@@ -157,7 +163,49 @@ end
         NtγTof!(body, getineqconstraint(mechanism, cid), mechanism)
     end
 
+    for cid in ineqchildren(mechanism.graph, body.id)
+        DtbTof!(body, getineqconstraint(mechanism, cid), mechanism)
+    end
+
     return body.f
+end
+
+@inline function dynamicsnob(body::Body{T}, mechanism) where T
+    No = mechanism.No
+    Δt = mechanism.Δt
+
+    ezg = SVector{3,T}(0, 0, -mechanism.g)
+    dynT = body.m * ((getvnew(body) - getv1(body, Δt)) / Δt + ezg) - body.F[No]
+
+    J = body.J
+    ω1 = getω1(body, Δt)
+    ωnew = getωnew(body)
+    sq1 = sqrt(4 / Δt^2 - ω1' * ω1)
+    sq2 = sqrt(4 / Δt^2 - ωnew' * ωnew)
+    dynR = skewplusdiag(ωnew, sq2) * (J * ωnew) - skewplusdiag(ω1, sq1) * (J * ω1) - 2 * body.τ[No]
+
+    body.f = [dynT;dynR]
+
+    for cid in connections(mechanism.graph, body.id)
+        GtλTof!(body, geteqconstraint(mechanism, cid), mechanism)
+    end
+
+    for cid in ineqchildren(mechanism.graph, body.id)
+        NtγTof!(body, getineqconstraint(mechanism, cid), mechanism)
+    end
+
+    return body.f
+end
+
+@inline function dynamics0(body::Body{T}, mechanism) where T
+    stemp = body.s1
+    ftemp = body.f
+    body.s1 = zeros(6)
+    f = dynamicsnob(body, mechanism)
+    body.s1 = stemp
+    body.f = ftemp
+
+    return f
 end
 
 @inline function ∂dyn∂vel(body::Body{T}, Δt) where T

@@ -2,7 +2,7 @@ mutable struct Friction{T} <: Bound{T}
     Nx::Adjoint{T,SVector{6,T}}
     D::SMatrix{2,6,T,12}
     cf::T
-    b::SVector{2,T}
+    # b::SVector{2,T}
     offset::SVector{6,T}
 
 
@@ -19,7 +19,7 @@ mutable struct Friction{T} <: Bound{T}
         D = [A[:,1:2];zeros(3,2)]'
         offset = [offset;0;0;0]
 
-        new{T}(Nx, D, cf, zeros(2),offset), body.id
+        new{T}(Nx, D, cf, offset), body.id
     end
 end
 
@@ -28,16 +28,64 @@ end
     friction.Nx[SVector(1, 2, 3)]' * (getx3(body, Δt) - friction.offset[SVector(1, 2, 3)])
 end
 
+function Bfc(ineqc, friction::Friction, body::Body, Δt)
+    D = friction.D
+    M = getM(body)
+    cf = friction.cf
+
+    γ1 = ineqc.γ1[1]
+    ψ1 = ineqc.ψ1[1]
+
+    D/M*D' + I*ψ1/(cf*γ1*Δt^2)
+end
+
+function Yfc(ineqc, friction::Friction, body::Body, Δt)
+    D = friction.D
+    M = getM(body)
+    cf = friction.cf
+
+    B = Bfc(ineqc, friction, body, Δt)
+
+    γ1 = ineqc.γ1[1]
+    ψ1 = ineqc.ψ1[1]
+
+    D'/B/(cf*γ1*ψ1)*body.b1*body.s1'*D'*D/Δt^2
+end
+
+function Xfc(ineqc, friction::Friction, body::Body, Δt)
+    D = friction.D
+    M = getM(body)
+    cf = friction.cf
+
+    B = Bfc(ineqc, friction, body, Δt)
+
+    γ1 = ineqc.γ1[1]
+    ψ1 = ineqc.ψ1[1]
+
+    M = getM(body)
+
+    I - D'/B*D/M
+end
+
 @inline ∂g∂pos(friction::Friction, No) = friction.Nx
 @inline ∂g∂vel(friction::Friction, Δt, No) = friction.Nx * Δt
 
-@inline function schurf(ineqc, friction::Friction, i, body::Body, μ, Δt, No)
+@inline function schurf(ineqc, friction::Friction, i, body::Body, μ, Δt, No, mechanism)
     φ = g(friction, body, Δt, No)
+    cf = friction.cf
+    D = friction.D
+    M = getM(body)
 
     γ1 = ineqc.γ1[i]
     s1 = ineqc.s1[i]
+    ψ1 = ineqc.ψ1[i]
 
-    return friction.Nx' * (γ1 / s1 * φ - μ / s1)
+    B = Bfc(ineqc, friction, body, Δt)
+    X = Xfc(ineqc, friction, body, Δt)
+    Y = Yfc(ineqc, friction, body, Δt)
+    
+
+    return -D'/B*D/M*dynamics0(body,mechanism) + 1/2*Y*body.s1 - 1/2*D'/B*ψ1/(cf*γ1*Δt^2)*body.b1 + X*friction.Nx' * (γ1 / s1 * φ - μ / s1)
 end
 
 @inline function schurD(ineqc, friction::Friction, i, body::Body, Δt)
@@ -47,7 +95,10 @@ end
     γ1 = ineqc.γ1[i]
     s1 = ineqc.s1[i]
 
-    return Nx' * γ1 / s1 * Nv
+    X = Xfc(ineqc, friction, body, Δt)
+    Y = Yfc(ineqc, friction, body, Δt)
+
+    return Y + X*Nx' * γ1 / s1 * Nv
 end
 
 # Smooth stuff

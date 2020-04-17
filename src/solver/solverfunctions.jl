@@ -129,23 +129,27 @@ end
 
 @inline function s0tos1!(component::Component)
     component.s1 = component.s0
+    component.b1 = component.b0
     return
 end
 
 @inline function s1tos0!(component::Component)
     component.s0 = component.s1
+    component.b0 = component.b1
     return
 end
 
 @inline function s0tos1!(ineqc::InequalityConstraint)
     ineqc.s1 = ineqc.s0
     ineqc.γ1 = ineqc.γ0
+    ineqc.ψ1 = ineqc.ψ0
     return
 end
 
 @inline function s1tos0!(ineqc::InequalityConstraint)
     ineqc.s0 = ineqc.s1
     ineqc.γ0 = ineqc.γ1
+    ineqc.ψ0 = ineqc.ψ1
     return
 end
 
@@ -172,10 +176,22 @@ function eliminatedSol!(ineqentry::InequalityEntry, diagonal::DiagonalEntry, bod
 
     γ1 = ineqc.γ1
     s1 = ineqc.s1
+    ψ1 = ineqc.ψ1
+
+    friction = ineqc.constraints[1]
+
+    D = friction.D
+    Dv = D*body.s1
+    B = Bfc(ineqc, friction, body, Δt)
+    cf = friction.cf
+    M = getM(body)
 
     Δv = diagonal.Δs
     ineqentry.Δγ = γ1 ./ s1 .* φ - μ ./ s1 - γ1 ./ s1 .* (Nv * Δv)
     ineqentry.Δs = s1 .- μ ./ γ1 - s1 ./ γ1 .* ineqentry.Δγ
+    ineqentry.Δψ = [1/2*ψ1[1] - 1/2*norm(Dv)^2*1/ψ1[1] + Dv'*D*1/ψ1[1]*Δv]
+    # Gx missing !!!!
+    diagonal.Δb = (I - inv(B)/(cf*γ1[1]*Δt^2)*ineqentry.Δψ[1])*body.b1 - B\D/M*(dynamics0(body,mechanism) + ∂g∂pos(ineqc, body, mechanism)'*ineqentry.Δγ[1])
 
     return
 end

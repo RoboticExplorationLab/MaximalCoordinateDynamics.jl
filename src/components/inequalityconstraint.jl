@@ -9,6 +9,8 @@ mutable struct InequalityConstraint{T,N,Cs} <: AbstractConstraint{T,N}
     s1::SVector{N,T}
     γ0::SVector{N,T}
     γ1::SVector{N,T}
+    ψ0::SVector{N,T}
+    ψ1::SVector{N,T}
     
 
     function InequalityConstraint(data...)
@@ -41,8 +43,10 @@ mutable struct InequalityConstraint{T,N,Cs} <: AbstractConstraint{T,N}
         s1 = ones(T, N)
         γ0 = ones(T, N)
         γ1 = ones(T, N)
+        ψ0 = ones(T, N)
+        ψ1 = ones(T, N)
 
-        new{T,N,typeof(constraints)}(getGlobalID(), constraints, pid, s0, s1, γ0, γ1)
+        new{T,N,typeof(constraints)}(getGlobalID(), constraints, pid, s0, s1, γ0, γ1, ψ0, ψ1)
     end
 end
 
@@ -54,6 +58,8 @@ function resetVars!(ineqc::InequalityConstraint{T,N}) where {T,N}
     ineqc.s1 = @SVector ones(T, N)
     ineqc.γ0 = @SVector ones(T, N)
     ineqc.γ1 = @SVector ones(T, N)
+    ineqc.ψ0 = @SVector ones(T, N)
+    ineqc.ψ1 = @SVector ones(T, N)
 
     return 
 end
@@ -61,6 +67,18 @@ end
 
 function g(ineqc::InequalityConstraint{T,1}, mechanism) where {T}
     g(ineqc.constraints[1], getbody(mechanism, ineqc.pid), mechanism.Δt, mechanism.No)
+end
+
+function g2(ineqc::InequalityConstraint{T,1}, mechanism) where {T}
+    body = getbody(mechanism, ineqc.pid)
+    B = Bfc(ineqc, ineqc.constraints[1], body, mechanism.Δt)
+    friction = ineqc.constraints[1]
+    D = friction.D
+    M = getM(body)
+    [
+        B*body.b1 - D/M*dynamics0(body,mechanism)
+        ineqc.ψ1[1]^2 - norm(D*body.s1)^2
+    ]
 end
 
 @generated function g(ineqc::InequalityConstraint{T,N}, mechanism) where {T,N}
@@ -89,7 +107,7 @@ end
 function schurf(ineqc::InequalityConstraint{T,N}, body, mechanism) where {T,N}
     val = @SVector zeros(T, 6)
     for i = 1:N
-        val += schurf(ineqc, ineqc.constraints[i], i, body, mechanism.μ, mechanism.Δt, mechanism.No)
+        val += schurf(ineqc, ineqc.constraints[i], i, body, mechanism.μ, mechanism.Δt, mechanism.No, mechanism)
     end
     return val
 end

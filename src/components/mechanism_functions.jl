@@ -43,13 +43,15 @@ end
 @inline function normf(ineqc::InequalityConstraint, mechanism::Mechanism)
     f = gs(ineqc, mechanism)
     d = h(ineqc)
-    return dot(f, f) + dot(d, d)
+    d2 = g2(ineqc, mechanism)
+    return dot(f, f) + dot(d, d) + dot(d2, d2)
 end
 
 @inline function normfμ(ineqc::InequalityConstraint, mechanism::Mechanism)
     f = gs(ineqc, mechanism)
     d = hμ(ineqc, mechanism.μ)
-    return dot(f, f) + dot(d, d)
+    d2 = g2(ineqc, mechanism)
+    return dot(f, f) + dot(d, d) + dot(d2, d2)
 end
 
 @inline function GtλTof!(body::Body, eqc::EqualityConstraint, mechanism)
@@ -59,6 +61,11 @@ end
 
 @inline function NtγTof!(body::Body, ineqc::InequalityConstraint, mechanism)
     body.f -= ∂g∂pos(ineqc, body, mechanism)' * ineqc.γ1
+    return
+end
+
+@inline function DtbTof!(body::Body, ineqc::InequalityConstraint, mechanism)
+    body.f -= ineqc.constraints[1].D' * body.b1
     return
 end
 
@@ -135,13 +142,17 @@ end
 function feasibilityStepLength!(ineqc::InequalityConstraint{T,N}, ineqentry::InequalityEntry, τ, mechanism) where {T,N}
     s1 = ineqc.s1
     γ1 = ineqc.γ1
+    ψ1 = ineqc.ψ1 
     Δs = ineqentry.Δs
     Δγ = ineqentry.Δγ
+    Δψ = ineqentry.Δψ
 
     for i = 1:N
         αmax = τ * s1[i] / Δs[i]
         (αmax > 0) && (αmax < mechanism.α) && (mechanism.α = αmax)
         αmax = τ * γ1[i] / Δγ[i]
+        (αmax > 0) && (αmax < mechanism.α) && (mechanism.α = αmax)
+        αmax = τ * ψ1[i] / Δψ[i]
         (αmax > 0) && (αmax < mechanism.α) && (mechanism.α = αmax)
     end
     return
