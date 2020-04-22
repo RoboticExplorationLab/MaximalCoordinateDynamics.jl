@@ -43,8 +43,8 @@ mutable struct InequalityConstraint{T,N,Cs} <: AbstractConstraint{T,N}
         s1 = ones(T, N)
         γ0 = ones(T, N)
         γ1 = ones(T, N)
-        ψ0 = ones(T, N)
-        ψ1 = ones(T, N)
+        ψ0 = 0.001*ones(T, N)
+        ψ1 = 0.001*ones(T, N)
 
         new{T,N,typeof(constraints)}(getGlobalID(), constraints, pid, s0, s1, γ0, γ1, ψ0, ψ1)
     end
@@ -58,8 +58,8 @@ function resetVars!(ineqc::InequalityConstraint{T,N}) where {T,N}
     ineqc.s1 = @SVector ones(T, N)
     ineqc.γ0 = @SVector ones(T, N)
     ineqc.γ1 = @SVector ones(T, N)
-    ineqc.ψ0 = @SVector ones(T, N)
-    ineqc.ψ1 = @SVector ones(T, N)
+    # ineqc.ψ0 = @SVector ones(T, N)
+    # ineqc.ψ1 = @SVector ones(T, N)
 
     return 
 end

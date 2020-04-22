@@ -189,7 +189,7 @@ function eliminatedSol!(ineqentry::InequalityEntry, diagonal::DiagonalEntry, bod
     Δv = diagonal.Δs
     ineqentry.Δγ = γ1 ./ s1 .* φ - μ ./ s1 - γ1 ./ s1 .* (Nv * Δv)
     ineqentry.Δs = s1 .- μ ./ γ1 - s1 ./ γ1 .* ineqentry.Δγ
-    ineqentry.Δψ = [1/2*ψ1[1] - 1/2*norm(Dv)^2*1/ψ1[1] + Dv'*D*1/ψ1[1]*Δv]
+    ineqentry.Δψ = [1/2*ψ1[1] - 1/2*norm(Dv)^2*1/ψ1[1]*Δt^2 + Dv'*D*1/ψ1[1]*Δv*Δt^2]
     # Gx missing !!!!
     diagonal.Δb = (I - inv(B)/(cf*γ1[1]*Δt^2)*ineqentry.Δψ[1])*body.b1 - B\D/M*(dynamics0(body,mechanism) + ∂g∂pos(ineqc, body, mechanism)'*ineqentry.Δγ[1])
 

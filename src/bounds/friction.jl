@@ -49,7 +49,7 @@ function Yfc(ineqc, friction::Friction, body::Body, Δt)
     γ1 = ineqc.γ1[1]
     ψ1 = ineqc.ψ1[1]
 
-    D'/B/(cf*γ1*ψ1)*body.b1*body.s1'*D'*D/Δt^2
+    D'/B/(cf*γ1*ψ1)*body.b1*body.s1'*D'*D
 end
 
 function Xfc(ineqc, friction::Friction, body::Body, Δt)
